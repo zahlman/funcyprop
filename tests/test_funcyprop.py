@@ -6,11 +6,7 @@ from sympy import Piecewise
 # this package
 from funcyprop import __version__, PiecewiseBuilderT, Source, t
 from funcyprop.decorate import add_properties
-
-
-def intclock():
-    counter = iter(count())
-    return lambda: next(counter)
+from funcyprop.clock import make_clock
 
 
 def test_version():
@@ -32,36 +28,30 @@ def test_builder_add():
 
 
 def test_source_loop():
-    s = Source(intclock(), int, int)
+    s = Source(make_clock(count()), int, int)
     assert s.loop is None
     s.loop = 3.0
     assert isinstance(s.loop, int) and s.loop == 3
 
 
 def test_source_values():
-    s = Source(intclock(), int, int)
+    s = Source(make_clock(count()), int, int)
     s.add(t**2, 10)
     s.add((10-t)**2, 10)
     assert s.formula == Piecewise((t**2, t<10), ((20-t)**2, t<20), (0.0, True))
     samples = [s.value for _ in range(25)]
-    # Setting the 'now' - also at initialization - necessarily consumes
-    # a value from the iterator. This is unavoidable; the iterator doesn't
-    # know why it's being consumed, and the Source doesn't know the "time"
-    # value comes from an iterator. TODO: Document this gotcha.
-    # Better yet: directly support specifying the clock as an iterator.
-    # Maybe give clocks a parameter for that info?
     assert samples == [
-        1, 4, 9, 16, 25,
-        36, 49, 64, 81, 100,
-        81, 64, 49, 36, 25,
-        16, 9, 4, 1, 0,
+        0, 1, 4, 9, 16, 
+        25, 36, 49, 64, 81,
+        100, 81, 64, 49, 36,
+        25, 16, 9, 4, 1,
         0, 0, 0, 0, 0
     ]
 
 
 @pytest.mark.xfail
 def test_source_loop_values():
-    s = Source(intclock(), int, int)
+    s = Source(make_clock(count()), int, int)
     s.add(t, 3)
     s.loop = 0
     samples = [s.value for _ in range(10)]
@@ -69,7 +59,7 @@ def test_source_loop_values():
 
 
 def test_decorate():
-    @add_properties(intclock(), x=float, y=float)
+    @add_properties(int, count(), x=int, y=int)
     class Test:
         def __init__(self):
             self._x.add(t**2, 10)
@@ -77,21 +67,20 @@ def test_decorate():
             self._y.add(10*t, 10)
             self._y.add(10*(10-t), 10)
     example = Test()
-    example._x.now = 0
     samples = [example.x for x in range(25)]
     assert samples == [
-        1, 4, 9, 16, 25,
-        36, 49, 64, 81, 100,
-        81, 64, 49, 36, 25,
-        16, 9, 4, 1, 0,
+        0, 1, 4, 9, 16, 
+        25, 36, 49, 64, 81,
+        100, 81, 64, 49, 36,
+        25, 16, 9, 4, 1,
         0, 0, 0, 0, 0
     ]
-    example._y.now = 0
+    example._y.reset(-1) # read 0 next time
     samples = [example.y for y in range(25)]
     assert samples == [
-        10, 20, 30, 40, 50,
-        60, 70, 80, 90, 100,
-        90, 80, 70, 60, 50,
-        40, 30, 20, 10, 0,
+        0, 10, 20, 30, 40,
+        50, 60, 70, 80, 90,
+        100, 90, 80, 70, 60,
+        50, 40, 30, 20, 10,
         0, 0, 0, 0, 0
     ]

@@ -1,5 +1,3 @@
-import time
-
 from sympy import Piecewise, symbols as _symbols, sympify
 t = _symbols('t')
 del _symbols
@@ -73,21 +71,9 @@ class PiecewiseBuilderT:
 
 
 class Source:
-    def __init__(self, clock=None, clocktype=float, resulttype=float):
-        if isinstance(clock, tuple):
-            context, attrname = clock
-            if not isinstance(attrname, str):
-                raise TypeError('invalid clock')
-            self._clock = lambda: getattr(context, attrname)
-        elif callable(clock):
-            self._clock = clock
-        elif clock is None:
-            self._clock = time.time
-        else:
-            raise TypeError('invalid clock')
-        self._clocktype = clocktype
+    def __init__(self, clock, clocktype=float, resulttype=float):
+        self._clock = clock
         self._resulttype = resulttype
-        self.now = 0
         self._builder = PiecewiseBuilderT(clocktype)
 
 
@@ -106,19 +92,13 @@ class Source:
         self._builder.loop = value
 
 
-    @property
-    def now(self):
-        return self._clocktype(self._clock()) - self._start
-
-
-    @now.setter
-    def now(self, value):
-        self._start = self._clocktype(self._clock()) - value
+    def reset(self, now=0):
+        self._clock.now = now
 
 
     @property
     def value(self):
-        return self._resulttype(self.formula.subs(t, self.now))
+        return self._resulttype(self.formula.subs(t, self._clock.now))
 
 
     def add(self, func, duration):
