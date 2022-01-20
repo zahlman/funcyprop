@@ -6,28 +6,15 @@ del _symbols
 class PiecewiseBuilderT:
     def __init__(self, clocktype=float):
         self._clocktype = clocktype
-        self._funcs = []
-        self._thresholds = []
-        # represents a piecewise function in `t` where the value is
-        # self._funcs[i](t) until time self._thresholds[i].
+        self._funcs = [sympify(clocktype())]
+        self._conditions = [True]
         self._loop = None
-        # by default, the value is self._funcs[-1](self._thresholds[-1])
-        # from then on. If a loop point is set, instead the function values
-        # loop indefinitely from that point until the end.
+        self._end = clocktype()
         self._built = None
 
 
     def _recalculate(self):
-        if not self._thresholds:
-            raise ValueError("can't compute formula for empty builder")
-        end = self._thresholds[-1]
-        loop = self._loop
-        funcs = self._funcs.copy()
-        conditions = [
-            t < threshold for threshold in self._thresholds
-        ] + [True]
-        funcs.append(sympify(self._funcs[-1].subs(t, end)))
-        self._built = Piecewise(*zip(funcs, conditions))
+        self._built = Piecewise(*zip(self._funcs, self._conditions))
 
 
     @property
@@ -37,8 +24,7 @@ class PiecewiseBuilderT:
 
     @loop.setter
     def loop(self, value):
-        self._built = None # invalidate so threshold checks can be updated
-        if value is not None:
+        if value is not None: # normalize it
             value = self._clocktype(value)
         self._loop = value
 
@@ -46,7 +32,7 @@ class PiecewiseBuilderT:
     @property
     def loopsize(self):
         l = self.loop
-        return None if l is None else self._thresholds[-1] - l
+        return None if l is None else self._end - l
 
 
     @property
@@ -58,10 +44,11 @@ class PiecewiseBuilderT:
 
     def add(self, func, duration):
         self._built = None # invalidate cache
-        end = self._thresholds[-1] if self._thresholds else 0
         # rebase time to the start of the segment.
-        self._funcs.append(func.subs(t, t-end))
-        self._thresholds.append(duration + end)
+        self._funcs.insert(-1, func.subs(t, t-self._end))
+        self._end += duration
+        self._funcs[-1] = sympify(func.subs(t, duration))
+        self._conditions.insert(-1, t < self._end)
 
 
 class Source:
