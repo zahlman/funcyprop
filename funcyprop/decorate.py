@@ -1,10 +1,27 @@
-from functools import partial
+from functools import partial, partialmethod
+import operator
 from .source import Source, t
 from .clock import make_clock
 
 
-def propgetter(name, self):
-    return getattr(self, name).value
+class Funcyprop(property):
+    def _overload(self, op, other):
+        if isinstance(other, Funcyprop):
+            return Funcyprop(lambda obj: op(self.fget(obj), other.fget(obj)))
+        return Funcyprop(lambda obj: op(self.fget(obj), other))
+
+
+for name in ('add', 'mul', 'sub'):
+    method = partialmethod(Funcyprop._overload, getattr(operator, name))
+    setattr(Funcyprop, f'__{name}__', method)
+
+
+def apply(func, funcyprop):
+    return Funcyprop(lambda obj: func(funcyprop.fget(obj)))
+
+
+def make_funcyprop(name):
+    return Funcyprop(lambda obj: getattr(obj, name).value)
 
 
 def my_new(old_new, to_add, clockdata, clocktype, *args, **kwargs):
@@ -22,7 +39,7 @@ def my_new(old_new, to_add, clockdata, clocktype, *args, **kwargs):
 def decorate(to_add, clock, clocktype, cls):
     cls.__new__ = partial(my_new, cls.__new__, to_add, clock, clocktype)
     for name, resulttype in to_add:
-        setattr(cls, name, property(fget=partial(propgetter, '_' + name)))
+        setattr(cls, name, make_funcyprop('_' + name))
     return cls
 
 
