@@ -26,19 +26,10 @@ class PiecewiseBuilderT:
         end = self._thresholds[-1]
         loop = self._loop
         funcs = self._funcs.copy()
-        if loop is None:
-            conditions = [
-                t < threshold for threshold in self._thresholds
-            ] + [True]
-            funcs.append(sympify(self._funcs[-1].subs(t, end)))
-        else:
-            modded_t = Piecewise(
-                (t, t < loop),
-                (loop + (t - loop) % (end - loop), True)
-            )
-            conditions = [
-                modded_t < threshold for threshold in self._thresholds
-            ]
+        conditions = [
+            t < threshold for threshold in self._thresholds
+        ] + [True]
+        funcs.append(sympify(self._funcs[-1].subs(t, end)))
         self._built = Piecewise(*zip(funcs, conditions))
 
 
@@ -53,6 +44,12 @@ class PiecewiseBuilderT:
         if value is not None:
             value = self._clocktype(value)
         self._loop = value
+
+
+    @property
+    def loopsize(self):
+        l = self.loop
+        return None if l is None else self._thresholds[-1] - l
 
 
     @property
@@ -98,7 +95,10 @@ class Source:
 
     @property
     def value(self):
-        return self._resulttype(self.formula.subs(t, self._clock.now))
+        now, l = self._clock.now, self.loop
+        if l is not None:
+            now = l + (now - l) % self._builder.loopsize
+        return self._resulttype(self.formula.subs(t, now))
 
 
     def add(self, func, duration):

@@ -41,7 +41,7 @@ def test_source_values():
     assert s.formula == Piecewise((t**2, t<10), ((20-t)**2, t<20), (0.0, True))
     samples = [s.value for _ in range(25)]
     assert samples == [
-        0, 1, 4, 9, 16, 
+        0, 1, 4, 9, 16,
         25, 36, 49, 64, 81,
         100, 81, 64, 49, 36,
         25, 16, 9, 4, 1,
@@ -49,7 +49,6 @@ def test_source_values():
     ]
 
 
-@pytest.mark.xfail
 def test_source_loop_values():
     s = Source(make_clock(count()), int, int)
     s.add(t, 3)
@@ -69,7 +68,7 @@ def test_decorate():
     example = Test()
     samples = [example.x for x in range(25)]
     assert samples == [
-        0, 1, 4, 9, 16, 
+        0, 1, 4, 9, 16,
         25, 36, 49, 64, 81,
         100, 81, 64, 49, 36,
         25, 16, 9, 4, 1,

@@ -27,7 +27,7 @@ def decorate(to_add, clock, clocktype, cls):
 
 
 def add_properties(clocktype, /, *clockdata, **names):
-    to_add = [ 
+    to_add = [
         (name, resulttype)
         for name, resulttype in names.items()
     ]
