@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+from functools import partial
 from time import time
 
 
@@ -44,7 +45,8 @@ class IterClock(Clock):
 def make_clock(*args, dtype=float):
     if len(args) == 2:
         context, attrname = args
-        return Clock(partial(getattr, context, str(attrname)), dtype)
+        assert isinstance(attrname, str)
+        return Clock(partial(getattr, context, attrname), dtype)
     value, = args
     if len(args) == 0:
         return Clock(time, dtype)

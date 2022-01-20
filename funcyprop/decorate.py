@@ -12,7 +12,7 @@ def my_new(old_new, to_add, clockdata, clocktype, *args, **kwargs):
     # use the same clock for each property, but we can't create it
     # until we're setting up the instance.
     if len(clockdata) == 1 and isinstance(clockdata[0], str):
-        clockdata = (result, clockdata)
+        clockdata = (result,) + clockdata
     clock = make_clock(*clockdata, dtype=clocktype)
     for name, resulttype in to_add:
         setattr(result, '_' + name, Source(clock, clocktype, resulttype))
