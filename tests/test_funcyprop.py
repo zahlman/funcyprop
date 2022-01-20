@@ -4,27 +4,11 @@ from itertools import count # a stable integer clock
 import pytest
 from sympy import Piecewise
 # this package
-from funcyprop import __version__, PiecewiseBuilderT, Source, t
-from funcyprop.decorate import add_properties
-from funcyprop.clock import make_clock
+from funcyprop import __version__, add_properties, make_clock, Source, t
 
 
 def test_version():
     assert __version__ == '0.1.0'
-
-
-def test_builder_loop():
-    b = PiecewiseBuilderT()
-    assert b.loop is None
-    b.loop = 3
-    assert isinstance(b.loop, float) and b.loop == 3.0
-
-
-def test_builder_add():
-    b = PiecewiseBuilderT()
-    b.add(t**2, 10)
-    b.add((10-t)**2, 10)
-    assert b.built == Piecewise((t**2, t<10), ((20-t)**2, t<20), (0.0, True))
 
 
 def test_source_loop():

@@ -1,5 +1,5 @@
 from functools import partial
-from . import Source, t
+from .source import Source, t
 from .clock import make_clock
 
 
