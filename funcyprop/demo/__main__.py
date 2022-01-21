@@ -34,7 +34,7 @@ import timeit
 
 root = tk.Tk()
 root.geometry('500x500')
-#root.resizable(width=False, height=False)
+root.resizable(width=False, height=False)
 canvas = tk.Canvas(root)
 canvas.pack(fill="both", expand=True)
 thing = Thing(canvas)
