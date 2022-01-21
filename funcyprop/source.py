@@ -39,13 +39,6 @@ class Source:
         self._conditions.insert(-1, t < self._end)
 
 
-    def reset(self, now=0):
-        # allow recalculation after adding but before value grab, to
-        # potentially avoid hiccups
-        self.formula
-        self._clock.now = now
-
-
     @property
     def formula(self):
         # also expose this as read-only, for easier testing.
