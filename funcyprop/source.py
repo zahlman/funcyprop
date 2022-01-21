@@ -1,4 +1,4 @@
-from sympy import Piecewise, symbols as _symbols, sympify
+from sympy import lambdify, Piecewise, symbols as _symbols, sympify
 t = _symbols('t')
 del _symbols
 
@@ -47,7 +47,8 @@ class Source:
     def formula(self):
         # also expose this as read-only, for easier testing.
         if self._formula is None:
-            self._formula = Piecewise(*zip(self._funcs, self._conditions))
+            symbolic = Piecewise(*zip(self._funcs, self._conditions))
+            self._formula = lambdify(t, symbolic, 'math')
         return self._formula
 
 
@@ -56,4 +57,4 @@ class Source:
         now, l = self._clock.now, self.loop
         if l is not None:
             now = l + (now - l) % (self._end - l)
-        return self._resulttype(self.formula.subs(t, now))
+        return self._resulttype(self.formula(now))
