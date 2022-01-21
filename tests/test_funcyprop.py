@@ -1,5 +1,4 @@
-# standard library
-from itertools import count # a stable integer clock
+from itertools import count
 # installed packages
 import pytest
 from sympy import Piecewise
@@ -11,19 +10,28 @@ def test_version():
     assert __version__ == '0.1.0'
 
 
+class INT_CLOCK:
+    value = 0
+
+    @staticmethod
+    def accumulate(obj, attr, count):
+        for _ in range(count):
+            yield getattr(obj, attr)
+            INT_CLOCK.value += 1
+
+
 def test_source_loop():
-    s = Source(make_clock(count()), int, int)
+    s = Source(make_clock(INT_CLOCK, 'value'), int)
     assert s.loop is None
     s.loop = 3.0
     assert isinstance(s.loop, int) and s.loop == 3
 
 
 def test_source_values():
-    s = Source(make_clock(count()), int, int)
+    s = Source(make_clock(INT_CLOCK, 'value'), int)
     s.add(t**2, 10)
     s.add((10-t)**2, 10)
-    assert s.formula == Piecewise((t**2, t<10), ((20-t)**2, t<20), (0.0, True))
-    samples = [s.value for _ in range(25)]
+    samples = list(INT_CLOCK.accumulate(s, 'value', 25))
     assert samples == [
         0, 1, 4, 9, 16,
         25, 36, 49, 64, 81,
@@ -34,15 +42,15 @@ def test_source_values():
 
 
 def test_source_loop_values():
-    s = Source(make_clock(count()), int, int)
+    s = Source(make_clock(INT_CLOCK, 'value'), int)
     s.add(t, 3)
     s.loop = 0
-    samples = [s.value for _ in range(10)]
+    samples = list(INT_CLOCK.accumulate(s, 'value', 10))
     assert samples == [0, 1, 2, 0, 1, 2, 0, 1, 2, 0]
 
 
 def test_decorate():
-    @add_properties(int, count(), x=int, y=int)
+    @add_properties(int, INT_CLOCK, 'value', x=int, y=int)
     class Test:
         def __init__(self):
             self._x.add(t**2, 10)
@@ -50,7 +58,8 @@ def test_decorate():
             self._y.add(10*t, 10)
             self._y.add(10*(10-t), 10)
     example = Test()
-    samples = [example.x for x in range(25)]
+    example._x.reset()
+    samples = list(INT_CLOCK.accumulate(example, 'x', 25))
     assert samples == [
         0, 1, 4, 9, 16,
         25, 36, 49, 64, 81,
@@ -58,8 +67,8 @@ def test_decorate():
         25, 16, 9, 4, 1,
         0, 0, 0, 0, 0
     ]
-    example._y.reset(-1) # read 0 next time
-    samples = [example.y for y in range(25)]
+    example._y.reset() # since it shares the underlying data...
+    samples = list(INT_CLOCK.accumulate(example, 'y', 25))
     assert samples == [
         0, 10, 20, 30, 40,
         50, 60, 70, 80, 90,
@@ -74,7 +83,6 @@ def test_math(dtype): # demonstrate strict interval bounds
     @add_properties(dtype, 'time', x=int, y=int)
     class Test:
         def __init__(self):
-            self.time = 0
             self._x.add(t, 5)
             self._y.add(t, 5)
     Test.z = Test.x * Test.y - 1

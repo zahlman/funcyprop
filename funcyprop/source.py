@@ -4,14 +4,13 @@ del _symbols
 
 
 class Source:
-    def __init__(self, clock, clocktype=float, resulttype=float):
+    def __init__(self, clock, resulttype=float):
         self._clock = clock
-        self._clocktype = clocktype
         self._resulttype = resulttype
-        self._funcs = [sympify(clocktype())]
+        self._funcs = [sympify(self._value())]
         self._conditions = [True]
         self._loop = None
-        self._end = clocktype()
+        self._end = self._value()
         self._formula = None
 
 
@@ -20,10 +19,14 @@ class Source:
         return self._loop
 
 
+    def _value(self, raw=0):
+        return self._clock.dtype(raw)
+
+
     @loop.setter
     def loop(self, value):
         if value is not None: # normalize it
-            value = self._clocktype(value)
+            value = self._value(value)
         self._loop = value
 
 

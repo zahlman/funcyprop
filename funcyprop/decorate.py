@@ -28,21 +28,22 @@ def make_funcyprop(name):
     return Funcyprop(lambda obj: getattr(obj, name).value)
 
 
-def my_new(cls, old_new, to_add, clockdata, clocktype, *args, **kwargs):
+def my_new(cls, old_new, to_add, clockdata, *args, **kwargs):
     obj_new = object.__new__
     obj = obj_new(cls) if old_new is obj_new else old_new(cls, *args, **kwargs)
     # use the same clock for each property, but we can't create it
     # until we're setting up the instance.
     if len(clockdata) == 1 and isinstance(clockdata[0], str):
+        setattr(obj, clockdata[0], 0.0) # for now
         clockdata = (obj,) + clockdata
-    clock = make_clock(*clockdata, dtype=clocktype)
+    clock = make_clock(*clockdata)
     for name, resulttype in to_add:
-        setattr(obj, '_' + name, Source(clock, clocktype, resulttype))
+        setattr(obj, '_' + name, Source(clock, resulttype))
     return obj
 
 
 def decorate(to_add, clock, clocktype, cls):
-    cls.__new__ = partialmethod(my_new, cls.__new__, to_add, clock, clocktype)
+    cls.__new__ = partialmethod(my_new, cls.__new__, to_add, clock)
     for name, resulttype in to_add:
         setattr(cls, name, make_funcyprop('_' + name))
     return cls
