@@ -32,9 +32,11 @@ def my_new(cls, old_new, to_add, clock, *args, **kwargs):
     obj_new = object.__new__
     obj = obj_new(cls) if old_new is obj_new else old_new(cls, *args, **kwargs)
     if not isinstance(clock, Clock): # delayed construction
-        clock = clock() # created separate clock per instance
+        maker, name = clock
+        clock = maker() # created separate clock per instance
         if not isinstance(clock, Clock):
             raise TypeError('invalid clock')
+        setattr(obj, name, clock)
     for name, resulttype in to_add:
         setattr(obj, '_' + name, Source(clock, resulttype))
     return obj

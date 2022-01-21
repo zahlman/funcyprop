@@ -42,8 +42,7 @@ def test_source_loop_values():
 
 
 def test_decorate():
-    clock = Manual()
-    @add_properties(clock, x=int, y=int)
+    @add_properties((Manual, 'c'), x=int, y=int)
     class Test:
         def __init__(self):
             self._x.add(t**2, 5)
@@ -54,7 +53,7 @@ def test_decorate():
     samples = []
     for _ in range(11):
         samples.append((example.x, example.y))
-        clock.now += 1
+        example.c.now += 1
     assert samples == [
         (1, 5), (4, 10), (9, 15), (16, 20), (25, 25),
         (16, 20), (9, 15), (4, 10), (1, 5), (0, 0), (0, 0)

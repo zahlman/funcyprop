@@ -5,7 +5,7 @@ from sympy import sin, cos
 from .. import add_properties, apply_many, Call, t
 
 
-@add_properties(Call, x=int, y=int)
+@add_properties(Call(), x=int, y=int)
 class Thing:
     def __new__(cls, canvas):
         return super().__new__(cls)
