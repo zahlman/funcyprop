@@ -66,22 +66,14 @@ class Clock:
         self._elapsed = value
 
 
-    def pause(self):
-        self._read()
-        self._paused += 1 
-
-
-    def resume(self):
-        self._paused = 0 # undo all pauses
-
-
     @contextmanager
     def sync(self):
-        self.pause()
+        self._read()
+        self._paused += 1
         try:
             yield self
         finally:
-            self._paused = max(0, self._paused - 1)
+            self._paused -= 1
 
 
 def Call(func=time):
