@@ -16,8 +16,13 @@ for name in ('add', 'mul', 'sub'):
     setattr(Funcyprop, f'__{name}__', method)
 
 
-def apply(func, funcyprop):
-    return Funcyprop(lambda obj: func(funcyprop.fget(obj)))
+def apply(func, subprop):
+    return Funcyprop(lambda obj: func(subprop.fget(obj)))
+
+
+def apply_many(func, *subprops):
+    return Funcyprop(lambda obj: func(s.fget(obj) for s in subprops))
+
 
 
 def make_funcyprop(name):
