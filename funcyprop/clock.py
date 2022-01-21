@@ -8,7 +8,7 @@ class Clock:
         # source -> function taking no arguments and returning a number
         # representing time elapsed (should be monotonically increasing).
         self._source = source
-        self._last = source()
+        self._last = 0 if source is None else source()
         # start of current 'lap'.
         self._start = self._last
         # data type, so everyone can sync up
@@ -22,16 +22,15 @@ class Clock:
 
     def _read(self):
         # always use the current value to set the marker
-        self._last = max(self._last, self._source())
+        if self._source is None:
+            self._last += 1
+        else:
+            self._last = max(self._last, self._source())
 
 
     def _lap(self):
         self._elapsed = self.now
         self._start = self._last
-
-
-    def tick(self):
-        self._last += 1 # for attribute/item-based clocks.
 
 
     @property
@@ -71,6 +70,6 @@ def make_clock(*args, dtype=float):
     if len(args) == 0:
         return Clock(time)
     value, = args
-    if callable(value):
+    if callable(value) or value is None:
         return Clock(value)
     raise TypeError('unrecognized clock source')
