@@ -24,7 +24,6 @@ def apply_many(func, *subprops):
     return Funcyprop(lambda obj: func(s.fget(obj) for s in subprops))
 
 
-
 def make_funcyprop(name):
     return Funcyprop(lambda obj: getattr(obj, name).value)
 
