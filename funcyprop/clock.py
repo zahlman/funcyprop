@@ -19,7 +19,7 @@ class Clock:
         # scaling factor for current lap time.
         self._rate = type(self._last)(1)
         # A lap ends whenever the 'now' is set or 'rate' changes.
-        self._paused = False
+        self._paused = 0 
 
 
     def _read(self):
@@ -68,11 +68,11 @@ class Clock:
 
     def pause(self):
         self._read()
-        self._paused = True
+        self._paused += 1 
 
 
     def resume(self):
-        self._paused = False
+        self._paused = 0 # undo all pauses
 
 
     @contextmanager
@@ -81,7 +81,7 @@ class Clock:
         try:
             yield self
         finally:
-            self.resume()
+            self._paused = max(0, self._paused - 1)
 
 
 def Call(func=time):
