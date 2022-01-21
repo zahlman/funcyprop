@@ -57,6 +57,7 @@ class Source:
 
     @property
     def value(self):
+        # We must be sure to only access 'now' once, because of auto clocks
         now, l = self._clock.now, self.loop
         if l is not None:
             now = l + (now - l) % (self._end - l)

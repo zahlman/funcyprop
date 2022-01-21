@@ -3,7 +3,7 @@ from itertools import count
 import pytest
 from sympy import Piecewise
 # this package
-from funcyprop import __version__, add_properties, make_clock, Source, t
+from funcyprop import __version__, add_properties, Auto, Manual, Source, t
 
 
 def test_version():
@@ -11,14 +11,14 @@ def test_version():
 
 
 def test_source_loop():
-    s = Source(make_clock(None), int)
+    s = Source(Auto(), int)
     assert s.loop is None
     s.loop = 3.0
     assert isinstance(s.loop, int) and s.loop == 3
 
 
 def test_source_values():
-    s = Source(make_clock(None), int)
+    s = Source(Auto(), int)
     s.add(t**2, 10)
     s.add((10-t)**2, 10)
     samples = [s.value for _ in range(25)] 
@@ -34,7 +34,7 @@ def test_source_values():
 
 
 def test_source_loop_values():
-    s = Source(make_clock(None), int)
+    s = Source(Auto(), int)
     s.add(t, 3)
     s.loop = 0
     samples = [s.value for _ in range(10)]
@@ -42,37 +42,29 @@ def test_source_loop_values():
 
 
 def test_decorate():
-    @add_properties(int, None, x=int, y=int)
+    clock = Manual()
+    @add_properties(clock, x=int, y=int)
     class Test:
         def __init__(self):
-            self._x.add(t**2, 10)
-            self._x.add((10-t)**2, 10)
-            self._y.add(10*t, 10)
-            self._y.add(10*(10-t), 10)
+            self._x.add(t**2, 5)
+            self._x.add((5-t)**2, 5)
+            self._y.add(5*t, 5)
+            self._y.add(5*(5-t), 5)
     example = Test()
-    example._x.reset()
-    samples = [example.x for _ in range(25)] 
+    samples = []
+    for _ in range(11):
+        samples.append((example.x, example.y))
+        clock.now += 1
     assert samples == [
-        1, 4, 9, 16, 25,
-        36, 49, 64, 81, 100,
-        81, 64, 49, 36, 25,
-        16, 9, 4, 1, 0,
-        0, 0, 0, 0, 0
-    ]
-    example._y.reset() # since it shares the underlying data...
-    samples = [example.y for _ in range(25)]
-    assert samples == [
-        10, 20, 30, 40, 50,
-        60, 70, 80, 90, 100,
-        90, 80, 70, 60, 50,
-        40, 30, 20, 10, 0,
-        0, 0, 0, 0, 0
+        (1, 5), (4, 10), (9, 15), (16, 20), (25, 25),
+        (16, 20), (9, 15), (4, 10), (1, 5), (0, 0), (0, 0)
     ]
 
 
 @pytest.mark.parametrize('dtype', (int, float))
 def test_math(dtype): # demonstrate strict interval bounds
-    @add_properties(dtype, 'time', x=int, y=int)
+    clock = Manual()
+    @add_properties(clock, x=int, y=int)
     class Test:
         def __init__(self):
             self._x.add(t, 5)
@@ -82,7 +74,7 @@ def test_math(dtype): # demonstrate strict interval bounds
     samples = []
     for _ in range(10):
         samples.append(example.z)
-        example.time += 1
+        clock.now += 1
     # The result is the same with ints because even though t=5 isn't in the
     # .add()ed interval, the "hold" at the end is calculated with t=5.
-    assert samples == [-1, 0, 3, 8, 15, 24, 24, 24, 24, 24]
+    assert samples == [0, 3, 8, 15, 24, 24, 24, 24, 24, 24]

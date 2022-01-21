@@ -23,7 +23,7 @@ class Clock:
     def _read(self):
         # always use the current value to set the marker
         if self._source is None:
-            self._last += 1
+            self._last += self.rate
         else:
             self._last = max(self._last, self._source())
 
@@ -62,14 +62,23 @@ class Clock:
         self._elapsed = value
 
 
-def make_clock(*args, dtype=float):
-    if len(args) == 2:
-        context, attrname = args
-        assert isinstance(attrname, str)
-        return Clock(partial(getattr, context, attrname))
-    if len(args) == 0:
-        return Clock(time)
-    value, = args
-    if callable(value) or value is None:
-        return Clock(value)
-    raise TypeError('unrecognized clock source')
+def Call(func=time):
+    return Clock(func)
+
+
+def Auto():
+    return Clock(None)
+
+
+def Manual(): # For convenience
+    result = Clock(None)
+    result.rate = 0
+    return result
+
+
+def Attr(context, name):
+    return Clock(partial(getattr, context, name))
+
+
+def Item(context, name):
+    return Clock(partial(context.__getitem__, name))
