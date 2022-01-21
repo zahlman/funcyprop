@@ -20,8 +20,11 @@ def apply(func, subprop):
     return Funcyprop(lambda obj: func(subprop.fget(obj)))
 
 
-def apply_many(func, *subprops):
-    return Funcyprop(lambda obj: func(s.fget(obj) for s in subprops))
+def apply_many(func, clock, *subprops):
+    def access(obj):
+        with clock.sync():
+            return func(s.fget(obj) for s in subprops)
+    return Funcyprop(access)
 
 
 def make_funcyprop(name):

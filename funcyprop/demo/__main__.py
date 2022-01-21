@@ -5,7 +5,8 @@ from sympy import sin, cos
 from .. import add_properties, apply_many, Call, t
 
 
-@add_properties(Call(), x=int, y=int)
+my_clock = Call()
+@add_properties(my_clock, x=int, y=int)
 class Thing:
     def __new__(cls, canvas):
         return super().__new__(cls)
@@ -26,8 +27,10 @@ class Thing:
             self._y.loop = 0
             self._canvas.itemconfigure(self._oval, state='normal')
         coords = self.coords
+        assert coords[2] - coords[0] == 20
+        assert coords[3] - coords[1] == 20
         self._canvas.coords(self._oval, *coords)
-Thing.coords = apply_many(tuple, Thing.x-10, Thing.y-10, Thing.x+10, Thing.y+10)
+Thing.coords = apply_many(tuple, my_clock, Thing.x-10, Thing.y-10, Thing.x+10, Thing.y+10)
 
 import timeit
 
