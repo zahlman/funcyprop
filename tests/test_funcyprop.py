@@ -62,7 +62,7 @@ def test_decorate():
 
 @pytest.mark.parametrize('dtype', (int, float))
 def test_math(dtype): # demonstrate strict interval bounds
-    clock = Manual()
+    clock = Auto()
     @add_properties(clock, x=int, y=int)
     class Test:
         def __init__(self):
@@ -72,8 +72,8 @@ def test_math(dtype): # demonstrate strict interval bounds
     example = Test()
     samples = []
     for _ in range(10):
-        samples.append(example.z)
-        clock.now += 1
+        with clock.sync():
+            samples.append(example.z)
     # The result is the same with ints because even though t=5 isn't in the
     # .add()ed interval, the "hold" at the end is calculated with t=5.
     assert samples == [0, 3, 8, 15, 24, 24, 24, 24, 24, 24]

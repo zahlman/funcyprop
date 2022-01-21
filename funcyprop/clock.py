@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+from contextlib import contextmanager
 from functools import partial
 from time import time
 
@@ -18,9 +19,12 @@ class Clock:
         # scaling factor for current lap time.
         self._rate = type(self._last)(1)
         # A lap ends whenever the 'now' is set or 'rate' changes.
+        self._paused = False
 
 
     def _read(self):
+        if self._paused:
+            return
         # always use the current value to set the marker
         if self._source is None:
             self._last += self.rate
@@ -62,6 +66,24 @@ class Clock:
         self._elapsed = value
 
 
+    def pause(self):
+        self._read()
+        self._paused = True
+
+
+    def resume(self):
+        self._paused = False
+
+
+    @contextmanager
+    def sync(self):
+        self.pause()
+        try:
+            yield self
+        finally:
+            self.resume()
+
+
 def Call(func=time):
     return Clock(func)
 
@@ -74,11 +96,3 @@ def Manual(): # For convenience
     result = Clock(None)
     result.rate = 0
     return result
-
-
-def Attr(context, name):
-    return Clock(partial(getattr, context, name))
-
-
-def Item(context, name):
-    return Clock(partial(context.__getitem__, name))
