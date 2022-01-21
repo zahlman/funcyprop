@@ -47,9 +47,9 @@ def make_clock(*args, dtype=float):
         context, attrname = args
         assert isinstance(attrname, str)
         return Clock(partial(getattr, context, attrname), dtype)
-    value, = args
     if len(args) == 0:
         return Clock(time, dtype)
+    value, = args
     if callable(value):
         return Clock(value, dtype)
     if isinstance(value, Iterable):
