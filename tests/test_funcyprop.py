@@ -3,7 +3,14 @@ from itertools import count
 import pytest
 from sympy import Piecewise, Rational
 # this package
-from funcyprop import __version__, add_properties, Auto, Manual, Segments, Source, t
+from funcyprop import (
+    __version__,
+    Auto, Manual, # clock
+    add_properties, # decorate
+    Linear, ShiftLeft, ShiftRight, # join
+    Segments, t, # segments
+    Source # source
+)
 
 
 def test_version():
@@ -90,3 +97,10 @@ def test_segment_math():
     assert s3 | (s3 @ -1) == Segments(5*t, 5, 5*(5-t), 5)
     s4 = (s2 * 25) @ fifth
     assert s4 == Segments(t**2, 5)
+
+
+def test_joiner():
+    s = Segments(t**2, 1)
+    assert s | ShiftRight | s == Segments(t**2, 1, t**2 + 1, 1)
+    assert s | ShiftLeft | s == Segments(t**2 - 1, 1, t**2, 1)
+    assert s | Linear(1) | s == Segments(t**2, 1, 1-t, 1, t**2, 1)
