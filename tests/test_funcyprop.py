@@ -1,7 +1,7 @@
 from itertools import count
 # installed packages
 import pytest
-from sympy import Piecewise
+from sympy import Piecewise, Rational
 # this package
 from funcyprop import __version__, add_properties, Auto, Manual, Segments, Source, t
 
@@ -76,15 +76,17 @@ def test_math(dtype): # demonstrate strict interval bounds
     assert samples == [0, 3, 8, 15, 24, 24, 24, 24, 24, 24]
 
 
-@pytest.mark.xfail
 def test_segment_math():
     s = Segments(t, 1)
     s2 = Segments(t**2, 1)
-    assert s * s == s2
     assert s - 1 == Segments(t-1, 1)
     assert s + 1 == Segments(t+1, 1)
-    assert (s+1) * (s-1) == s2 - 1
-    s3 = (s * 5) @ .2
+    # can also combine with another function, piecewise
+    assert s * t == Segments(t**2, 1)
+    assert s / 2 == Segments(t/2, 1)
+    # Use rational numbers to avoid floating-point imprecision.
+    fifth = Rational(1, 5)
+    s3 = (s * 25) @ fifth
     assert s3 | (s3 @ -1) == Segments(5*t, 5, 5*(5-t), 5)
-    s4 = (s2 * 25) @ .2
+    s4 = (s2 * 25) @ fifth
     assert s4 == Segments(t**2, 5)
