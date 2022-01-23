@@ -1,9 +1,8 @@
-from math import pi
+from math import pi, sin, cos
 from time import sleep, time
 from timeit import timeit
 import tkinter as tk
-from sympy import sin, cos
-from .. import add_properties, gather, Call, t
+from .. import add_properties, apply, gather, Call, Linear, Segments, ShiftRight, t
 
 
 # setup and main loop
@@ -65,15 +64,23 @@ class Window(tk.Tk):
 
 
 # controller
+def polar_to_rectangular(rt):
+    r, theta = rt
+    return r * cos(theta) + 250, r * sin(theta) + 250
+
+
 my_clock = Call()
-@add_properties(my_clock, x=int, y=int)
+@add_properties(my_clock, r=float, theta=float)
 class Controller:
     def __init__(self):
-        self._x.segments = (250 + sin(t) * 200, 2*pi)
-        self._y.segments = (250 + cos(t) * 200, 2*pi)
-        self._x.loop = 0
-        self._y.loop = 0
-Controller.xy = gather(my_clock, Controller, 'x', 'y')
+        outward = (10*t**2, pi) | ShiftRight | (-10*(pi-t)**2, pi)
+        self._r.segments = (outward | Linear(2*pi) | outward @ -1) @ 0.5 
+        self._theta.segments = (t, 2*pi)
+        self._r.loop = 0
+        self._theta.loop = 0
+Controller.xy = apply(
+    polar_to_rectangular, gather(my_clock, Controller, 'r', 'theta')
+)
 
 
 # main program
