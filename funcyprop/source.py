@@ -1,4 +1,4 @@
-from .segments import _Segments, Segments
+from .segments import Function, Segments
 
 
 class Source:
@@ -30,10 +30,11 @@ class Source:
 
     @segments.setter
     def segments(self, value):
-        if not isinstance(value, _Segments):
+        if not isinstance(value, Function):
             value = Segments(*value)
         self._segments = value
-        self._formula, self._end = self._segments.formula(self._resulttype)
+        self._formula = self._segments.formula
+        self._end = self._segments.duration
         self._clock.now = 0
 
 
@@ -43,4 +44,8 @@ class Source:
         now, l = self._clock.now, self.loop
         if l is not None:
             now = l + (now - l) % (self._end - l)
+        if now < 0:
+            raise ValueError("tried to evaluate at t < 0")
+        if now > self._end:
+            now = self._end
         return self._resulttype(self._formula(now))

@@ -1,130 +1,148 @@
-from sympy import lambdify, Piecewise, symbols as _symbols, sympify
-t = _symbols('t')
-del _symbols
+from functools import partial, partialmethod
+import operator
+
+from sympy.core.basic import Basic as SympyFunction
+from sympy import lambdify, Piecewise, piecewise_fold, symbols, sympify
+t = symbols('t')
+del symbols
 
 
-def _process(last, funcs, durations):
+# FIXME use this in other places
+def valid_clock(number):
+    return sympify(number).is_comparable
+
+
+def _segment(f, d, position, last):
+    try:
+        pf = f.subs(t, t-position)
+    except AttributeError: # not a sympy thing, so a constant.
+        pf = sympify(f)
+    end = d + position
+    return pf, ((t <= end) if last else (t < end))
+
+
+def _process(funcs, durations):
     position = 0
-    for f, d in zip(funcs, durations):
-        try:
-            pf = f.subs(t, t-position)
-        except AttributeError: # not a sympy thing, so a constant.
-            pf = sympify(f)
+    for f, d in zip(funcs[:-1], durations[:-1]):
+        yield _segment(f, d, position, False)
         position += d
-        last = f.subs(t, d)
-        yield (pf, t < position)
-    yield (sympify(last), True)
+    yield _segment(funcs[-1], durations[-1], position, True)
 
 
-def _trim(durations, size):
-    position = 0
-    for d in durations:
-        if position + d >= size:
-            yield size - position
-            break
-        yield d
-        position += d
-
-
-# Doesn't really need to be used externally, but it looks nice.
 def Segments(*args):
-    return _Segments(args[::2], args[1::2])
+    # TODO: think more about handling for clock types and result types.
+    if not args:
+        return Function(sympify(0), 0)
+    funcs, durations = args[::2], args[1::2]
+    if len(funcs) != len(durations):
+        raise ValueError("funcs and durations don't match up")
+    if not all(d >= 0 for d in durations):
+        raise ValueError("durations can't be negative")
+    return Function(
+        Piecewise(*_process(funcs, durations)), sum(durations)
+    )
 
 
-class _Segments:
-    def __new__(cls, funcs, durations): # TODO: interning
-        funcs, durations = tuple(funcs), tuple(durations)
-        if len(funcs) != len(durations):
-            raise ValueError("funcs and durations don't match up")
-        if not all(d >= 0 for d in durations):
-            raise ValueError("durations can't be negative")
-        instance = super().__new__(cls)
-        instance._funcs = funcs
-        instance._durations = durations
-        return instance
+class Function:
+    """Wraps a Sympy function `f(t)`, to be evaluated on [0, `duration`].
+    The value of `f(duration)` is used for all t > duration.
+    Will explicitly fail for t < 0."""
+    def __init__(self, func, duration):
+        func = sympify(func).simplify() # in case it's a constant
+        unbindable = func.free_symbols - {t}
+        if unbindable:
+            raise ValueError(f'func binds extra symbols: {unbindable}')
+        if not valid_clock(duration):
+            raise TypeError('duration must be comparable to float')
+        if duration < 0:
+            raise TypeError('duration cannot be negative')
+        self._func = func
+        self._duration = duration
+
+
+    # helper for binary operations.
+    def _binop(self, op, other):
+        f, d = self._func, self._duration
+        # handle another Function or the segments to create one
+        if isinstance(other, tuple):
+            other = Segments(*other)
+        if isinstance(other, Function):
+            return Function(op(f, other._func), min(d, other._duration))
+        # handle a Sympy function
+        if isinstance(other, SympyFunction):
+            return Function(op(f, other), d)
+        # If it sympifies to a numeric constant, use it as-is
+        symp = sympify(other)
+        if symp.is_number:
+            return Function(op(f, other), d)
+        return NotImplemented
 
 
     def __eq__(self, other):
-        return all(
-            sf.equals(of) and sd == od
-            for sf, sd, of, od in zip(
-                self._funcs, self._durations, other._funcs, other._durations
-            )
-        )
+        return all((
+            self._func.equals(other._func),
+            self._duration == other._duration
+        ))
 
 
     def __str__(self):
-        args = [None] * (2 * len(self._funcs))
-        args[::2] = self._funcs
-        args[1::2] = self._durations
-        return f'Segments{tuple(args)}'
+        return f'Function({self._func}, {self._duration})'
     __repr__ = __str__
 
 
     def __or__(self, other):
         if isinstance(other, tuple):
             other = Segments(*other)
-        if not isinstance(other, _Segments):
+        if not isinstance(other, Function):
             return NotImplemented # could be a Joiner...
-        return _Segments(
-            self._funcs + other._funcs, self._durations + other._durations
+        d = self.duration
+        end = d + other.duration
+        return Function(
+            piecewise_fold(Piecewise(
+                (self._func, t < d), (other._func.subs(t, t-d), t <= end)
+            )),
+            self.duration + other.duration
         )
 
 
-    def __add__(self, amount):
-        return _Segments(
-            (f + amount for f in self._funcs),
-            self._durations
-        )
-
-
-    def __mul__(self, amount):
-        return _Segments(
-            (f * amount for f in self._funcs),
-            self._durations
-        )
-
-
-    def __sub__(self, amount):
-        return self + (-amount)
-
-
-    def __truediv__(self, amount):
-        return self * (1 / amount)
+    def __ror__(self, other):
+        if isinstance(other, tuple):
+            return Segments(*other) | self
+        return NotImplemented
 
 
     def __matmul__(self, amount): # change rate inversely
-        if amount < 0:
-            return self.reverse() @ -amount
-        return _Segments(
-            (f.subs(t, t*amount) for f in self._funcs),
-            (d / amount for d in self._durations)
-        )
+        d = self.duration
+        t_sub = ((t - d) if amount < 0 else t) * amount
+        return Function(self._func.subs(t, t_sub), abs(d / amount))
 
 
     def __rmatmul__(self, func): # compose the function
-        return _Segments(
-            (func(f) for f in self._funcs),
-            self._durations
-        )
+        return Function(func(self._func), self.duration)
 
 
-    def __getitem__(self, s): # slice the sequences
-        return _Segments(self._funcs[s], self._durations[s])
+    @property
+    def duration(self):
+        return self._duration
 
 
     def reverse(self):
-        fs, ds = self._funcs, self._durations
-        return _Segments(
-            (f.subs(t, d-t) for f, d in zip(fs[::-1], ds[::-1])), reversed(ds)
-        )
+        return self @ -1
 
 
-    def cut(self, size): # segments up until the given amount of time
-        trimmed = tuple(_trim(self._durations, size))
-        return _Segments(self._funcs[:len(trimmed)], trimmed)
+    @property
+    def formula(self):
+        d = self.duration
+        # Enforce domain
+        func = piecewise_fold(Piecewise(
+            (self._func.subs(t, d), t >= d),
+            (self._func, (t >= 0))
+        )).simplify()
+        return lambdify(t, self._func, 'math')
 
 
-    def formula(self, dtype):
-        symbolic = Piecewise(*_process(dtype(0), self._funcs, self._durations))
-        return lambdify(t, symbolic, 'math'), sum(self._durations)
+for name in ('add', 'sub', 'mul', 'truediv', 'floordiv'):
+    op = getattr(operator, name)
+    setattr(Function, f'__{name}__', partialmethod(Function._binop, op))
+    op = partial((lambda op, lhs, rhs: op(rhs, lhs)), op)
+    setattr(Function, f'__r{name}__', partialmethod(Function._binop, op))
