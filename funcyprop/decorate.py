@@ -17,13 +17,15 @@ for name in ('add', 'mul', 'sub'):
 
 
 def apply(func, subprop):
-    return Funcyprop(lambda obj: func(subprop.fget(obj)))
+    fget = subprop.fget # avoid looking it up each time
+    return Funcyprop(lambda obj: func(fget(obj)))
 
 
-def apply_many(func, clock, *subprops):
+def gather(clock, cls, *names):
+    funcs = [getattr(cls, name).fget for name in names]
     def access(obj):
         with clock.sync():
-            return func(s.fget(obj) for s in subprops)
+            return tuple(func(obj) for func in funcs)
     return Funcyprop(access)
 
 

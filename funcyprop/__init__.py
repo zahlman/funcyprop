@@ -1,5 +1,5 @@
 from .clock import Call, Auto, Manual
-from .decorate import add_properties, apply, apply_many
+from .decorate import add_properties, apply, gather
 from .source import Source, t
 
 

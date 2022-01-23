@@ -3,7 +3,7 @@ from time import sleep, time
 from timeit import timeit
 import tkinter as tk
 from sympy import sin, cos
-from .. import add_properties, apply_many, Call, t
+from .. import add_properties, gather, Call, t
 
 
 # setup and main loop
@@ -74,7 +74,7 @@ class Controller:
         self._x.loop = 0
         self._y.loop = 0
         self.xy # compile formulas to keep that out of the test
-Controller.xy = apply_many(tuple, my_clock, Controller.x, Controller.y)
+Controller.xy = gather(my_clock, Controller, 'x', 'y')
 
 
 # main program
