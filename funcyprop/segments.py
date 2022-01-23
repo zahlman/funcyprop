@@ -135,6 +135,10 @@ class Function:
         return self @ -1
 
 
+    def at(self, position):
+        return self._func.subs(t, position)
+
+
     @property
     def formula(self):
         d = self.duration
