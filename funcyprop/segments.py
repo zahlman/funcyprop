@@ -29,6 +29,19 @@ def _process(funcs, durations):
     yield _segment(funcs[-1], durations[-1], position, True)
 
 
+def coerce(thing, duration=None):
+    if isinstance(thing, Function):
+        return thing
+    if isinstance(thing, tuple):
+        return Segments(*thing)
+    if duration is None:
+        raise TypeError(f"can't coerce {thing} to Function without a duration")
+    func = sympify(thing)
+    if not isinstance(func, SympyFunction):
+        raise TypeError(f"can't coerce {thing} to Function")
+    return Function(func, duration)
+
+
 def Segments(*args):
     # TODO: think more about handling for clock types and result types.
     if not args:
@@ -63,19 +76,11 @@ class Function:
     # helper for binary operations.
     def _binop(self, op, other):
         f, d = self._func, self._duration
-        # handle another Function or the segments to create one
-        if isinstance(other, tuple):
-            other = Segments(*other)
-        if isinstance(other, Function):
-            return Function(op(f, other._func), min(d, other._duration))
-        # handle a Sympy function
-        if isinstance(other, SympyFunction):
-            return Function(op(f, other), d)
-        # If it sympifies to a numeric constant, use it as-is
-        symp = sympify(other)
-        if symp.is_number:
-            return Function(op(f, other), d)
-        return NotImplemented
+        try:
+            other = coerce(other, d)
+        except TypeError:
+            return NotImplemented
+        return Function(op(f, other._func), min(d, other._duration))
 
 
     def __eq__(self, other):
