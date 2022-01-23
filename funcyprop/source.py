@@ -6,7 +6,7 @@ class Source:
         self._clock = clock
         self._resulttype = resulttype
         self._loop = None
-        self._end = self._value()
+        self._end = clock.dtype(0)
         self.segments = Segments()
         self._transition = None
 
@@ -16,14 +16,10 @@ class Source:
         return self._loop
 
 
-    def _value(self, raw=0):
-        return self._clock.dtype(raw)
-
-
     @loop.setter
     def loop(self, value):
         if value is not None: # normalize it to the clock's type
-            value = self._value(value)
+            value = self._clock.dtype(value)
         self._loop = value
 
 
