@@ -19,8 +19,7 @@ def test_source_loop():
 
 def test_source_values():
     s = Source(Auto(), int)
-    s.add(t**2, 10)
-    s.add((10-t)**2, 10)
+    s.segments = (t**2, 10, (10-t)**2, 10)
     samples = [s.value for _ in range(25)] 
     # When reading from a counter, the first result will be 1 more than
     # the last reset value. TODO is this the best behaviour?
@@ -35,7 +34,7 @@ def test_source_values():
 
 def test_source_loop_values():
     s = Source(Auto(), int)
-    s.add(t, 3)
+    s.segments = (t, 3)
     s.loop = 0
     samples = [s.value for _ in range(10)]
     assert samples == [1, 2, 0, 1, 2, 0, 1, 2, 0, 1]
@@ -45,17 +44,15 @@ def test_decorate():
     @add_properties((Manual, 'c'), x=int, y=int)
     class Test:
         def __init__(self):
-            self._x.add(t**2, 5)
-            self._x.add((5-t)**2, 5)
-            self._y.add(5*t, 5)
-            self._y.add(5*(5-t), 5)
+            self._x.segments = (t**2, 5, (5-t)**2, 5)
+            self._y.segments = (5*t, 5, 5*(5-t), 5)
     example = Test()
     samples = []
-    for _ in range(11):
+    for _ in range(12):
         samples.append((example.x, example.y))
         example.c.now += 1
     assert samples == [
-        (1, 5), (4, 10), (9, 15), (16, 20), (25, 25),
+        (0, 0), (1, 5), (4, 10), (9, 15), (16, 20), (25, 25),
         (16, 20), (9, 15), (4, 10), (1, 5), (0, 0), (0, 0)
     ]
 
@@ -66,8 +63,8 @@ def test_math(dtype): # demonstrate strict interval bounds
     @add_properties(clock, x=int, y=int)
     class Test:
         def __init__(self):
-            self._x.add(t, 5)
-            self._y.add(t, 5)
+            self._x.segments = (t, 5)
+            self._y.segments = (t, 5)
     Test.z = Test.x * Test.y - 1
     example = Test()
     samples = []

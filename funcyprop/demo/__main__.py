@@ -69,8 +69,8 @@ my_clock = Call()
 @add_properties(my_clock, x=int, y=int)
 class Controller:
     def __init__(self):
-        self._x.add(250 + sin(t) * 200, 2*pi)
-        self._y.add(250 + cos(t) * 200, 2*pi)
+        self._x.segments = (250 + sin(t) * 200, 2*pi)
+        self._y.segments = (250 + cos(t) * 200, 2*pi)
         self._x.loop = 0
         self._y.loop = 0
         self.xy # compile formulas to keep that out of the test

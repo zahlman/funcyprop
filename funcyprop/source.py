@@ -1,17 +1,14 @@
-from sympy import lambdify, Piecewise, symbols as _symbols, sympify
-t = _symbols('t')
-del _symbols
+from .segments import _Segments, Segments
 
 
 class Source:
     def __init__(self, clock, resulttype=float):
         self._clock = clock
         self._resulttype = resulttype
-        self._funcs = [sympify(self._value())]
-        self._conditions = [True]
         self._loop = None
         self._end = self._value()
-        self._formula = None
+        self.segments = Segments()
+        self._transition = None
 
 
     @property
@@ -25,27 +22,23 @@ class Source:
 
     @loop.setter
     def loop(self, value):
-        if value is not None: # normalize it
+        if value is not None: # normalize it to the clock's type
             value = self._value(value)
         self._loop = value
 
 
-    def add(self, func, duration):
-        self._formula = None # invalidate cache
-        # rebase time to the start of the segment.
-        self._funcs.insert(-1, func.subs(t, t-self._end))
-        self._end += duration
-        self._funcs[-1] = sympify(func.subs(t, duration))
-        self._conditions.insert(-1, t < self._end)
-
-
     @property
-    def formula(self):
-        # also expose this as read-only, for easier testing.
-        if self._formula is None:
-            symbolic = Piecewise(*zip(self._funcs, self._conditions))
-            self._formula = lambdify(t, symbolic, 'math')
-        return self._formula
+    def segments(self):
+        return self._segments
+
+
+    @segments.setter
+    def segments(self, value):
+        if not isinstance(value, _Segments):
+            value = Segments(*value)
+        self._segments = value
+        self._formula, self._end = self._segments.formula(self._resulttype)
+        self._clock.now = 0
 
 
     @property
@@ -54,4 +47,4 @@ class Source:
         now, l = self._clock.now, self.loop
         if l is not None:
             now = l + (now - l) % (self._end - l)
-        return self._resulttype(self.formula(now))
+        return self._resulttype(self._formula(now))

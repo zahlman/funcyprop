@@ -1,7 +1,8 @@
 from functools import partial, partialmethod
 import operator
-from .source import Source, t
 from .clock import Clock
+from .segments import t
+from .source import Source
 
 
 class Funcyprop(property):
