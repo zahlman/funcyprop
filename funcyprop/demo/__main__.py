@@ -73,7 +73,6 @@ class Controller:
         self._y.segments = (250 + cos(t) * 200, 2*pi)
         self._x.loop = 0
         self._y.loop = 0
-        self.xy # compile formulas to keep that out of the test
 Controller.xy = gather(my_clock, Controller, 'x', 'y')
 
 
