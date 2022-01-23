@@ -3,7 +3,7 @@ from itertools import count
 import pytest
 from sympy import Piecewise
 # this package
-from funcyprop import __version__, add_properties, Auto, Manual, Source, t
+from funcyprop import __version__, add_properties, Auto, Manual, Segments, Source, t
 
 
 def test_version():
@@ -74,3 +74,17 @@ def test_math(dtype): # demonstrate strict interval bounds
     # The result is the same with ints because even though t=5 isn't in the
     # .add()ed interval, the "hold" at the end is calculated with t=5.
     assert samples == [0, 3, 8, 15, 24, 24, 24, 24, 24, 24]
+
+
+@pytest.mark.xfail
+def test_segment_math():
+    s = Segments(t, 1)
+    s2 = Segments(t**2, 1)
+    assert s * s == s2
+    assert s - 1 == Segments(t-1, 1)
+    assert s + 1 == Segments(t+1, 1)
+    assert (s+1) * (s-1) == s2 - 1
+    s3 = (s * 5) @ .2
+    assert s3 | (s3 @ -1) == Segments(5*t, 5, 5*(5-t), 5)
+    s4 = (s2 * 25) @ .2
+    assert s4 == Segments(t**2, 5)
